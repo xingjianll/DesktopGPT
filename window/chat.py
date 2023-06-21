@@ -11,18 +11,17 @@ class ChatWindow(ctk.CTk, IfView):
     com: IfGetResponse
     prompt_entry: ctk.CTkEntry
     tabview: ctk.CTkTabview
-    text_boxes: list[ctk.CTkTextbox]
-    tabs: list[ctk.CTkFrame]
+    text_boxes: dict[str, ctk.CTkTextbox]
     curr_prompt: str
-    curr_page: int
+    curr_page: str
 
     def display_msg(self, msg: str) -> None:
-        self.text_boxes[self.curr_page].configure(state="normal")
-        self.text_boxes[self.curr_page].insert(ctk.END, ">>>chatGPT: " + msg + "\n\n")
-        self.text_boxes[self.curr_page].configure(state="disabled")
+        self.text_boxes.get(self.curr_page).configure(state="normal")
+        self.text_boxes.get(self.curr_page).insert(ctk.END, ">>>chatGPT: " + msg + "\n\n")
+        self.text_boxes.get(self.curr_page).configure(state="disabled")
 
     def __init__(self, com: IfGetResponse):
-        self.text_boxes = []
+        self.text_boxes = {}
         self.com = com
         super().__init__()
         self.withdraw()
@@ -61,28 +60,38 @@ class ChatWindow(ctk.CTk, IfView):
 
     def send_msg(self) -> None:
         self.prompt_entry.after(1, self._send_msg_helper())
-        self.com.request_response(self.curr_prompt, "gpt-3.5-turbo")
+        self.com.request_response(self.curr_prompt, "gpt-3.5-turbo", self.tabview.get())
 
     def _send_msg_helper(self) -> None:
         self.curr_prompt = self.prompt_entry.get()
-        self.curr_page = int(self.tabview.get())
-        self.text_boxes[self.curr_page].configure(state="normal")
-        self.text_boxes[self.curr_page].insert(ctk.END, ">>> user: " + self.curr_prompt + "\n\n")
-        self.text_boxes[self.curr_page].configure(state="disabled")
+        self.curr_page = self.tabview.get()
+        self.text_boxes.get(self.curr_page).configure(state="normal")
+        self.text_boxes.get(self.curr_page).insert(ctk.END, ">>> user: " + self.curr_prompt + "\n\n")
+        self.text_boxes.get(self.curr_page).configure(state="disabled")
         self.prompt_entry.delete(0, ctk.END)
 
     def add_chat(self) -> None:
-        tab_name = str(len(self.text_boxes))
-        self.tabview.add(tab_name)
-        self.tabview.set(tab_name)
+        if len(self.text_boxes) == 0:
+            self._add_chat_helper("tab 1")
 
-        textbox = ctk.CTkTextbox(master=self.tabview.tab(tab_name), width=900, height=500, pady=0, padx=0)
+        else:
+            dialog = ctk.CTkInputDialog(text="Enter name for new conversation:", title="Hi")
+            a = dialog.get_input()
+            if a in self.text_boxes or a == "":
+                pass
+            else:
+                self._add_chat_helper(a)
+
+    def _add_chat_helper(self, name: str):
+        self.tabview.add(name)
+        self.tabview.set(name)
+
+        textbox = ctk.CTkTextbox(master=self.tabview.tab(name), width=900, height=550, pady=0, padx=0)
         textbox.pack()
         textbox.configure(state="disabled")
-        self.text_boxes.append(textbox)
+        self.text_boxes[name] = textbox
 
     def del_chat(self) -> None:
-        curr = int(self.tabview.get())
-        if curr != 0:
-            del self.text_boxes[curr]
+        if len(self.text_boxes) != 1:
+            self.text_boxes.__delitem__(self.tabview.get())
             self.tabview.delete(self.tabview.get())

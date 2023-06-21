@@ -8,21 +8,27 @@ class ResponseGetter(IfGetResponse):
     org_id: str
     api_key: str
     view: IfView
-    messages: list
+    conversations: dict[str, list]
 
     def initialize(self, view: IfView):
         self.view = view
-        self.messages = []
+        self.conversations = {}
 
-    def request_response(self, prompt: str, model: str) -> None:
+    def request_response(self, prompt: str, model: str, conversation_name: str) -> None:
+        curr_chat = self.conversations.get(conversation_name)
+
+        if curr_chat is None:
+            self.conversations[conversation_name] = []
+            curr_chat = self.conversations.get(conversation_name)
+
         openai.api_key = self.api_key
-        self.messages.append({"role": "user", "content": prompt})
+        curr_chat.append({"role": "user", "content": prompt})
         completion = openai.ChatCompletion.create(
             model=model,
-            messages=self.messages
+            messages=curr_chat
         )
 
-        self.messages.append({"role": "assistant",
+        curr_chat.append({"role": "assistant",
                               "content": completion.choices[0].message.content})
         self.view.display_msg(completion.choices[0].message.content)
 
@@ -31,3 +37,6 @@ class ResponseGetter(IfGetResponse):
 
     def set_apikey(self, api_key: str) -> None:
         self.api_key = api_key
+
+    def delete_conversation(self, conversation_name: str) -> None:
+        self.conversations.__delitem__(conversation_name)
