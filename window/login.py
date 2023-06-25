@@ -1,6 +1,6 @@
 # Importing required module
 import customtkinter as ctk
-
+import data
 from getresponse import IfGetResponse
 
 
@@ -8,6 +8,7 @@ class LoginWindow(ctk.CTk):
     api_entry: ctk.CTkEntry
     com: IfGetResponse
     chat: ctk.CTk
+    checkbox: ctk.CTkCheckBox
 
     def __init__(self, com: IfGetResponse, chat: ctk.CTk):
         self.com = com
@@ -39,19 +40,33 @@ class LoginWindow(ctk.CTk):
                                       placeholder_text="API Key",
                                       show="*")
         self.api_entry.pack(pady=12, padx=10)
+        self.api_entry.insert('end', data.get_pass())
 
         # Create a login button to login
         button = ctk.CTkButton(master=frame,
-                               text='Login', command=self.login)
+                               text='start', command=self.login)
         button.pack(pady=12, padx=10)
 
         # Create a remember me checkbox
-        checkbox = ctk.CTkCheckBox(master=frame,
+        self.checkbox = ctk.CTkCheckBox(master=frame,
                                    text='Remember Me')
-        checkbox.pack(pady=12, padx=10)
+        self.checkbox.pack(pady=12, padx=10)
+
+        if data.remember_me() is True:
+            self.checkbox.select()
 
     def login(self):
-        self.com.set_apikey(self.api_entry.get())
+
+        key = self.api_entry.get()
+        self.com.set_apikey(key)
+        if self.checkbox.get() == 1:
+            data.store_pass(key)
+            with open('config.txt', 'w') as f:
+                f.write("Y")
+        else:
+            open('pass.txt', 'w').close()
+            with open('config.txt', 'w') as f:
+                f.write("N")
+
         self.withdraw()
         self.chat.deiconify()
-

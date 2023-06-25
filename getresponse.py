@@ -14,15 +14,16 @@ class ResponseGetter(IfGetResponse):
         self.view = view
         self.conversations = {}
 
-    def request_response(self, prompt: str, model: str, conversation_name: str) -> None:
+    def request_response(self, prompt: str, model: str, conversation_name: str, temperature: float) -> None:
         curr_chat = self.conversations.get(conversation_name)
 
         if curr_chat is None:
             self.conversations[conversation_name] = []
             curr_chat = self.conversations.get(conversation_name)
 
-        openai.api_key = self.api_key
         curr_chat.append({"role": "user", "content": prompt})
+
+        openai.api_key = self.api_key
         completion = openai.ChatCompletion.create(
             model=model,
             messages=curr_chat
@@ -37,6 +38,12 @@ class ResponseGetter(IfGetResponse):
 
     def set_apikey(self, api_key: str) -> None:
         self.api_key = api_key
+
+    def get_conversations(self) -> dict[str: list]:
+        return self.conversations
+
+    def set_conversations(self, conversations: dict[str: list]) -> None:
+        self.conversations = conversations
 
     def delete_conversation(self, conversation_name: str) -> None:
         self.conversations.__delitem__(conversation_name)
